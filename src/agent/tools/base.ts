@@ -2,7 +2,7 @@
  * Abstract base class for all agent tools.
  */
 
-import type { JSONSchema, OpenAIToolSchema } from '../types/index.js';
+import type { JSONSchema, OpenAIToolSchema } from '../../types/index.js';
 
 export abstract class Tool {
   abstract readonly name: string;

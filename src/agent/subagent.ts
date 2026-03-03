@@ -11,10 +11,10 @@ import { randomUUID } from 'node:crypto';
 import type { MessageBus } from '../bus/queue.js';
 import type { LangChainProvider } from '../providers/langchain.js';
 import type { InboundMessage, SessionMessage, ToolCallDict } from '../types/index.js';
-import { ToolRegistry } from '../tools/registry.js';
-import { ReadFileTool, WriteFileTool, EditFileTool, ListDirTool } from '../tools/filesystem.js';
-import { ExecTool } from '../tools/shell.js';
-import { WebSearchTool, WebFetchTool } from '../tools/web.js';
+import { ToolRegistry } from './tools/registry.js';
+import { ReadFileTool, WriteFileTool, EditFileTool, ListDirTool } from './tools/filesystem.js';
+import { ExecTool } from './tools/shell.js';
+import { WebSearchTool, WebFetchTool } from './tools/web.js';
 
 /** 生成短 ID（8 位十六进制） */
 function shortId(): string {

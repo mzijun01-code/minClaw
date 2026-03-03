@@ -3,7 +3,7 @@
  */
 
 import { Tool } from './base.js';
-import type { JSONSchema, OutboundMessage } from '../types/index.js';
+import type { JSONSchema, OutboundMessage } from '../../types/index.js';
 
 export class MessageTool extends Tool {
   readonly name = 'message';

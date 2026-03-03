@@ -3,8 +3,8 @@
  */
 
 import { Tool } from './base.js';
-import type { JSONSchema } from '../types/index.js';
-import type { SubagentManager } from '../agent/subagent.js';
+import type { JSONSchema } from '../../types/index.js';
+import type { SubagentManager } from '../subagent.js';
 
 export class SpawnTool extends Tool {
   readonly name = 'spawn';

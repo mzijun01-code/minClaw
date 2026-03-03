@@ -7,7 +7,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { Tool } from './base.js';
-import type { JSONSchema } from '../types/index.js';
+import type { JSONSchema } from '../../types/index.js';
 
 const DEFAULT_DENY_PATTERNS: RegExp[] = [
   /\brm\s+-[rf]{1,2}\b/i,

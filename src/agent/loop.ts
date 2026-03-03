@@ -20,13 +20,13 @@ import type { InboundMessage, OutboundMessage, SessionMessage, ToolCallDict } fr
 import { ContextBuilder } from './context.js';
 import { SessionManager, Session, saveTurn } from '../session/manager.js';
 import { SubagentManager } from './subagent.js';
-import { ToolRegistry } from '../tools/registry.js';
-import { ReadFileTool, WriteFileTool, EditFileTool, ListDirTool } from '../tools/filesystem.js';
-import { ExecTool } from '../tools/shell.js';
-import { WebSearchTool, WebFetchTool } from '../tools/web.js';
-import { MessageTool } from '../tools/message.js';
-import { SpawnTool } from '../tools/spawn.js';
-import { CronTool } from '../tools/cron.js';
+import { ToolRegistry } from './tools/registry.js';
+import { ReadFileTool, WriteFileTool, EditFileTool, ListDirTool } from './tools/filesystem.js';
+import { ExecTool } from './tools/shell.js';
+import { WebSearchTool, WebFetchTool } from './tools/web.js';
+import { MessageTool } from './tools/message.js';
+import { SpawnTool } from './tools/spawn.js';
+import { CronTool } from './tools/cron.js';
 
 const DEBUG = Boolean(process.env.MINBOT_DEBUG || process.env.DEBUG);
 

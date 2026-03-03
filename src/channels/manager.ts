@@ -111,6 +111,18 @@ export class ChannelManager {
       }
     }
 
+    // ── MoChat (WeChat bridge) ────────────────────────────────────────────────
+    if (process.env['MOCHAT_CLAW_TOKEN']) {
+      try {
+        const { MochatChannel, mochatConfigFromEnv } = await import('./mochat.js');
+        const allowFrom = ChannelManager.parseAllowFrom(process.env['MOCHAT_ALLOW_FROM']);
+        this._register(new MochatChannel(mochatConfigFromEnv(allowFrom), this.bus));
+        console.log('[channels] MoChat (WeChat) channel enabled');
+      } catch (e) {
+        console.warn('[channels] MoChat channel unavailable:', (e as Error).message);
+      }
+    }
+
     this._validateAllowFrom();
   }
 

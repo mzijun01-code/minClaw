@@ -5,7 +5,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { Tool } from './base.js';
-import type { JSONSchema } from '../types/index.js';
+import type { JSONSchema } from '../../types/index.js';
 
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7) AppleWebKit/537.36';
 

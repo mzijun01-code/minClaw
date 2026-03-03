@@ -4,8 +4,8 @@
  */
 
 import { Tool } from './base.js';
-import type { JSONSchema, CronSchedule } from '../types/index.js';
-import type { CronService } from '../cron/service.js';
+import type { JSONSchema, CronSchedule } from '../../types/index.js';
+import type { CronService } from '../../cron/service.js';
 
 export class CronTool extends Tool {
   readonly name = 'cron';
@@ -42,6 +42,7 @@ export class CronTool extends Tool {
 
   private _channel = '';
   private _chatId = '';
+  private _inCronContext = false;
 
   constructor(private readonly _service: CronService) {
     super();
@@ -50,6 +51,15 @@ export class CronTool extends Tool {
   setContext(channel: string, chatId: string): void {
     this._channel = channel;
     this._chatId = chatId;
+  }
+
+  /** Mark that we are executing inside a cron job callback (prevents re-scheduling). */
+  enterCronContext(): void {
+    this._inCronContext = true;
+  }
+
+  leaveCronContext(): void {
+    this._inCronContext = false;
   }
 
   async execute(args: Record<string, unknown>): Promise<string> {
@@ -64,6 +74,9 @@ export class CronTool extends Tool {
   }
 
   private _add(args: Record<string, unknown>): string {
+    if (this._inCronContext) {
+      return 'Error: cannot schedule new jobs from within a cron job execution';
+    }
     const message = args['message'] as string | undefined;
     if (!message) return 'Error: message is required for add';
     if (!this._channel || !this._chatId) return 'Error: no session context (channel/chatId)';
