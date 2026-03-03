@@ -17,6 +17,7 @@
  */
 
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import fs from 'node:fs';
 import 'dotenv/config';
@@ -25,7 +26,7 @@ import { MessageBus } from './bus/queue.js';
 import { LangChainProvider } from './providers/langchain.js';
 import { AgentLoop } from './agent/loop.js';
 import { CronService } from './cron/service.js';
-import { runCli } from './cli/index.js';
+import { ChannelManager } from './channels/manager.js';
 
 function getEnv(key: string, fallback?: string): string {
   const val = process.env[key] ?? fallback;
@@ -52,6 +53,13 @@ async function main(): Promise<void> {
   const maxTokens = parseInt(process.env['MAX_TOKENS'] ?? '4096', 10);
   const temperature = parseFloat(process.env['TEMPERATURE'] ?? '0.1');
   const braveApiKey = process.env['BRAVE_API_KEY'];
+
+  // ─── Builtin skills directory ───────────────────────────────────────────────
+  // Resolves to minbot/skills/ regardless of whether running from src/ or dist/
+  const builtinSkillsDir = path.resolve(
+    fileURLToPath(new URL('.', import.meta.url)),
+    '../skills',
+  );
 
   // ─── Workspace ──────────────────────────────────────────────────────────────
   fs.mkdirSync(workspace, { recursive: true });
@@ -82,6 +90,7 @@ async function main(): Promise<void> {
     braveApiKey,
     cronService,
     restrictToWorkspace: false,
+    builtinSkillsDir,
   });
 
   // Hook cron job firing → inject as system message
@@ -98,8 +107,14 @@ async function main(): Promise<void> {
 
   cronService.start();
 
-  // ─── Start CLI ──────────────────────────────────────────────────────────────
-  await runCli(bus, loop);
+  // ─── Start channels ──────────────────────────────────────────────────────────
+  const channelManager = new ChannelManager(bus);
+  loop.run().catch((err: unknown) => {
+    console.error('Fatal agent error:', err);
+    process.exit(1);
+  });
+
+  await channelManager.startAll();
 }
 
 main().catch((err: unknown) => {
