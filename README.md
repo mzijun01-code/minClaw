@@ -1,15 +1,15 @@
 # minbot 设计文档
 
-> 基于 openClawBot Python 版本的 Node.js 复刻，以 LangChain + TypeScript 为核心
+> 基于 openClaw nanobot 复刻，以 LangChain + TypeScript 为核心的个人AI助手
 
 ---
 
 ## 一、项目概述
 
-**minbot** 是 openClaw 的 Node.js 版本，保留原版所有核心能力，并通过 TypeScript + LangChain 获得更好的类型安全与生态整合，利用前端同学，打造成一个可扩展的AI助手。
+**minbot** 是 openClaw 的 Node + langChain 版本，保留原版核心能力，并通过 TypeScript + LangChain 获得更好的类型安全与生态整合，利用前端同学，打造成一个可扩展的个人AI助手。
 
 ### 核心目标
-1. 完整复刻 openClawBot 功能：消息总线、代理循环、记忆、技能、工具、子代理、定时任务
+1. 完整 openClawBot 功能：消息总线、代理循环、记忆、技能、工具、子代理、定时任务
 2. 使用 LangChain 统一管理 LLM 调用（支持 OpenAI / Anthropic / 任意 OpenAI 兼容接口）
 3. TypeScript 严格类型，代码可读性与维护性优先
 4. 可通过 CLI 直接运行，架构为后续接入渠道（Telegram/Discord等）预留扩展点
