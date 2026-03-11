@@ -1,9 +1,6 @@
 /**
- * MCP client — connects to MCP servers and wraps their tools as native minbot tools.
- *
- * Supports:
- *  - Stdio transport: spawn a local process and communicate over stdin/stdout
- *  - Streamable HTTP transport: connect to a remote MCP HTTP endpoint
+ * MCP 客户端：连接 MCP 服务端，将其工具封装为 minbot 原生工具。
+ * 支持：Stdio（本地子进程 stdin/stdout）、Streamable HTTP（远程 HTTP 端点）。
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -14,10 +11,7 @@ import { Tool } from './base.js';
 import type { ToolRegistry } from './registry.js';
 import type { JSONSchema } from '../../types/index.js';
 
-// ---------------------------------------------------------------------------
-// Config types (mirrors nanobot MCPServerConfig)
-// ---------------------------------------------------------------------------
-
+/** MCP 服务端配置：stdio 用 command/args/env，HTTP 用 url/headers；toolTimeout 单位秒。 */
 export interface McpServerConfig {
   command?: string;
   args?: string[];
@@ -27,10 +21,7 @@ export interface McpServerConfig {
   toolTimeout?: number;
 }
 
-// ---------------------------------------------------------------------------
-// Wrapper tool
-// ---------------------------------------------------------------------------
-
+/** 将 MCP 远端工具包装为 Tool 子类，名称加前缀 mcp_${serverName}_，支持超时。 */
 class McpToolWrapper extends Tool {
   readonly name: string;
   readonly description: string;
@@ -68,6 +59,7 @@ class McpToolWrapper extends Tool {
 
       if (typeof result === 'string') return result;
 
+      /* MCP 返回 content 数组，取出 type=text 的 text 拼成字符串 */
       const parts: string[] = [];
       const content = (result as { content?: unknown[] }).content ?? [];
       for (const block of content) {
@@ -92,13 +84,9 @@ class McpToolWrapper extends Tool {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Connect + register
-// ---------------------------------------------------------------------------
-
 /**
- * Connect to all configured MCP servers and register their tools into the registry.
- * Returns cleanup functions to call on shutdown.
+ * 连接配置中的所有 MCP 服务端，并把其工具注册到 registry。
+ * 返回关闭时需调用的清理函数数组。
  */
 export async function connectMcpServers(
   servers: Record<string, McpServerConfig>,
@@ -111,7 +99,7 @@ export async function connectMcpServers(
 
     try {
       if (cfg.command) {
-        // Stdio mode: launch a local subprocess
+        /* Stdio：启动本地子进程，stdin/stdout 通信 */
         const env = { ...process.env, ...cfg.env } as Record<string, string>;
         transport = new StdioClientTransport({
           command: cfg.command,
@@ -120,7 +108,7 @@ export async function connectMcpServers(
           stderr: 'pipe',
         });
       } else if (cfg.url) {
-        // Streamable HTTP mode
+        /* Streamable HTTP：连接远程 MCP 端点 */
         transport = new StreamableHTTPClientTransport(new URL(cfg.url), {
           requestInit: {
             headers: cfg.headers ?? {},

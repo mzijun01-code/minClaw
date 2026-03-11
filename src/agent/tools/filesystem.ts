@@ -1,5 +1,6 @@
 /**
- * Filesystem tools: read_file, write_file, edit_file, list_dir
+ * 文件系统工具：read_file / write_file / edit_file / list_dir。
+ * 支持相对路径基于 workspace，并可限制在 allowedDir 内防越权。
  */
 
 import fs from 'node:fs';
@@ -7,6 +8,7 @@ import path from 'node:path';
 import { Tool } from './base.js';
 import type { JSONSchema } from '../../types/index.js';
 
+/** 解析路径：支持 ~、相对路径+workspace，并校验不超出 allowedDir。 */
 function resolvePath(
   filePath: string,
   workspace?: string,
@@ -32,8 +34,7 @@ function resolvePath(
   return resolved;
 }
 
-// ─── ReadFileTool ─────────────────────────────────────────────────────────────
-
+/** 读取指定路径文件内容，UTF-8。 */
 export class ReadFileTool extends Tool {
   readonly name = 'read_file';
   readonly description = 'Read the contents of a file at the given path.';
@@ -65,8 +66,7 @@ export class ReadFileTool extends Tool {
   }
 }
 
-// ─── WriteFileTool ────────────────────────────────────────────────────────────
-
+/** 写入文件，必要时递归创建父目录。 */
 export class WriteFileTool extends Tool {
   readonly name = 'write_file';
   readonly description = 'Write content to a file. Creates parent directories if needed.';
@@ -100,8 +100,10 @@ export class WriteFileTool extends Tool {
   }
 }
 
-// ─── EditFileTool ─────────────────────────────────────────────────────────────
-
+/** 
+ * 按 old_text 精确匹配替换为 new_text；
+ * 若出现多次会要求提供更多上下文。
+ */
 export class EditFileTool extends Tool {
   readonly name = 'edit_file';
   readonly description =
@@ -152,8 +154,7 @@ export class EditFileTool extends Tool {
   }
 }
 
-// ─── fuzzy diff helper ────────────────────────────────────────────────────────
-
+/** old_text 未找到时，用行级相似度找最佳匹配并生成类 diff 提示。 */
 function _buildNotFoundMessage(oldText: string, content: string, filePath: string): string {
   const lines = content.split('\n');
   const oldLines = oldText.split('\n');
@@ -183,6 +184,7 @@ function _buildNotFoundMessage(oldText: string, content: string, filePath: strin
   return `Error: old_text not found in ${filePath}. No similar text found. Verify the file content.`;
 }
 
+/** 两行数组的 Jaccard 式相似度（2*交集/总行数）。 */
 function _sequenceSimilarity(a: string[], b: string[]): number {
   if (a.length === 0 && b.length === 0) return 1;
   let matches = 0;
@@ -194,6 +196,7 @@ function _sequenceSimilarity(a: string[], b: string[]): number {
   return (2 * matches) / (a.length + b.length);
 }
 
+/** 生成简易 unified diff 风格的前后对比。 */
 function _unifiedDiff(before: string, after: string): string {
   const aLines = before.split('\n');
   const bLines = after.split('\n');
@@ -211,8 +214,7 @@ function _unifiedDiff(before: string, after: string): string {
   return result.join('\n');
 }
 
-// ─── ListDirTool ──────────────────────────────────────────────────────────────
-
+/** 列出目录内容，按名称排序，目录/文件用图标区分。 */
 export class ListDirTool extends Tool {
   readonly name = 'list_dir';
   readonly description = 'List the contents of a directory.';

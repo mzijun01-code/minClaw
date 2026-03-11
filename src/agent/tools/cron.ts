@@ -1,6 +1,6 @@
 /**
- * Cron tool — manage scheduled reminders and tasks.
- * Actions: add, list, remove
+ * 定时任务工具：管理提醒与周期任务。动作：add（新增）、list（列表）、remove（删除）。
+ * 支持按间隔秒数、cron 表达式、或单次执行时间（at）调度。
  */
 
 import { Tool } from './base.js';
@@ -53,7 +53,7 @@ export class CronTool extends Tool {
     this._chatId = chatId;
   }
 
-  /** Mark that we are executing inside a cron job callback (prevents re-scheduling). */
+  /** 标记当前在 cron 回调中执行，禁止在回调内再次添加任务。 */
   enterCronContext(): void {
     this._inCronContext = true;
   }
@@ -73,6 +73,7 @@ export class CronTool extends Tool {
     }
   }
 
+  /** 新增任务：every_seconds / cron_expr / at 三选一，单次任务用 at 且 deleteAfterRun。 */
   private _add(args: Record<string, unknown>): string {
     if (this._inCronContext) {
       return 'Error: cannot schedule new jobs from within a cron job execution';

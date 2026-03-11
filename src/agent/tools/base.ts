@@ -1,5 +1,6 @@
 /**
- * Abstract base class for all agent tools.
+ * 所有 Agent 工具的抽象基类。
+ * 定义 name/description/parameters，提供参数校验与转 OpenAI 函数调用 schema。
  */
 
 import type { JSONSchema, OpenAIToolSchema } from '../../types/index.js';
@@ -11,6 +12,7 @@ export abstract class Tool {
 
   abstract execute(args: Record<string, unknown>): Promise<string>;
 
+  /** 转为 OpenAI function calling 所需的 schema。 */
   toSchema(): OpenAIToolSchema {
     return {
       type: 'function',
@@ -23,13 +25,13 @@ export abstract class Tool {
   }
 
   /**
-   * Validate parameters against the JSON schema.
-   * Returns a list of error strings (empty = valid).
+   * 按 JSON Schema 校验参数，返回错误信息列表，空数组表示合法。
    */
   validateParams(params: Record<string, unknown>): string[] {
     return this._validate(params, { ...this.parameters, type: 'object' }, '');
   }
 
+  /** 递归校验值是否符合 schema，path 用于错误信息中的字段路径。 */
   private _validate(val: unknown, schema: Record<string, unknown>, path: string): string[] {
     const label = path || 'parameter';
     const t = schema['type'] as string | undefined;
@@ -55,7 +57,7 @@ export abstract class Tool {
       if (max !== undefined && num > max) errors.push(`${label} must be <= ${max}`);
     }
 
-    // Object properties
+    /* 对象：校验必填字段并递归校验各属性 */
     if (t === 'object' && typeof val === 'object' && val !== null) {
       const obj = val as Record<string, unknown>;
       const props = (schema['properties'] ?? {}) as Record<string, Record<string, unknown>>;
@@ -75,7 +77,7 @@ export abstract class Tool {
       }
     }
 
-    // Array items
+    /* 数组：按 items schema 校验每项 */
     if (t === 'array' && Array.isArray(val)) {
       const itemSchema = schema['items'] as Record<string, unknown> | undefined;
       if (itemSchema) {
@@ -90,6 +92,7 @@ export abstract class Tool {
     return errors;
   }
 
+  /** 基础类型检查（string/integer/number/boolean/array/object）。 */
   private _checkType(val: unknown, type: string): boolean {
     switch (type) {
       case 'string': return typeof val === 'string';

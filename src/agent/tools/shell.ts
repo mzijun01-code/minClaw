@@ -1,7 +1,6 @@
 /**
- * Shell execution tool — exec
- *
- * Runs shell commands with safety guards against dangerous patterns.
+ * Shell 执行工具 exec：在指定工作目录执行命令，带超时与危险命令正则拦截。
+ * 可选 restrictToWorkspace 限制命令涉及路径不超出工作目录。
  */
 
 import { spawn } from 'node:child_process';
@@ -9,6 +8,7 @@ import path from 'node:path';
 import { Tool } from './base.js';
 import type { JSONSchema } from '../../types/index.js';
 
+/** 默认禁止的命令模式：递归删、格式化、关机等。 */
 const DEFAULT_DENY_PATTERNS: RegExp[] = [
   /\brm\s+-[rf]{1,2}\b/i,
   /\bdel\s+\/[fq]\b/i,
@@ -21,6 +21,7 @@ const DEFAULT_DENY_PATTERNS: RegExp[] = [
   /:\(\)\s*\{.*\};\s*:/,
 ];
 
+/** 在 cwd 下 shell 执行 command，超时后 SIGKILL；返回 stdout、stderr、exitCode（超时为 -1）。 */
 function runCommand(
   command: string,
   cwd: string,
@@ -63,6 +64,7 @@ function runCommand(
   });
 }
 
+/** 执行 shell 命令，先经 _guard 检查危险模式与（可选）路径限制。 */
 export class ExecTool extends Tool {
   readonly name = 'exec';
   readonly description = 'Execute a shell command and return its output.';
@@ -124,6 +126,7 @@ export class ExecTool extends Tool {
     return result;
   }
 
+  /** 安全检查：命中 deny 正则则拦截；restrictToWorkspace 时禁止路径逃逸到工作目录外。 */
   private _guard(command: string, cwd: string): string | null {
     const lower = command.toLowerCase();
 

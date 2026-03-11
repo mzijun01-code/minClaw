@@ -68,8 +68,8 @@ export class AgentLoop {
     this._bus = bus;
     this._provider = options.provider;
     this._model = options.model ?? options.provider.defaultModel;
-    this._maxIterations = options.maxIterations ?? 40;
-    this._memoryWindow = options.memoryWindow ?? 100;
+    this._maxIterations = options.maxIterations ?? 60; // 单轮最大工具调用次数
+    this._memoryWindow = options.memoryWindow ?? 100; 
 
     this._context = new ContextBuilder(options.workspace, options.builtinSkillsDir);
     this._sessions = new SessionManager(options.workspace);
@@ -94,7 +94,7 @@ export class AgentLoop {
    */
   private _registerTools(options: AgentLoopOptions): void {
     const ws = options.workspace;
-    const allowed = options.restrictToWorkspace ? ws : undefined;
+    const allowed = options.restrictToWorkspace ? ws : undefined; // 限制在 workspace 内
 
     // 文件系统工具
     this._tools.register(new ReadFileTool(ws, allowed));
@@ -108,7 +108,7 @@ export class AgentLoop {
       restrictToWorkspace: options.restrictToWorkspace,
     }));
 
-    // Web 相关工具
+    // Web 相关工具 Brave/Tavily 搜索
     this._tools.register(new WebSearchTool(options.braveApiKey));
     this._tools.register(new WebFetchTool());
 
@@ -116,11 +116,11 @@ export class AgentLoop {
     this._messageTool.setSendCallback((msg) => this._bus.publishOutbound(msg));
     this._tools.register(this._messageTool);
 
-    // 子代理生成工具
+    // 子代理生成工具 启动后台子代理任务
     const spawnTool = new SpawnTool(this._subagents);
     this._tools.register(spawnTool);
 
-    // 定时任务工具（可选）
+    // 定时任务工具（可选） 添加/列出/删除定时任务
     if (options.cronService) {
       this._tools.register(new CronTool(options.cronService));
     }
@@ -143,22 +143,21 @@ export class AgentLoop {
    */
   async run(): Promise<void> {
     this._running = true;
-    console.log('[Agent] Loop started');
 
     while (this._running) {
-      // Directly await message from bus (no timeout race condition)
-      // The bus.consumeInbound() will wait until a message arrives
+      // 直接等待消息总线（无超时竞争条件）
+      // bus.consumeInbound() 会等待直到有消息到达
       const msg = await this._bus.consumeInbound();
       if (!this._running) break;
 
-      debugLog('inbound message received, processing...');
+      debugLog('收到入站消息，开始处理...');
       try {
         const response = await this._processMessage(msg);
-        debugLog('_processMessage done, publishing response');
+        debugLog('处理完成，发布响应...');
         if (response) {
           await this._bus.publishOutbound(response);
         } else if (msg.channel === 'cli') {
-          // CLI expects a response even for empty results
+          // CLI 期望即使没有结果也要有响应
           await this._bus.publishOutbound({
             channel: msg.channel,
             chatId: msg.chatId,
@@ -167,7 +166,6 @@ export class AgentLoop {
           });
         }
       } catch (err) {
-        console.error('[Agent] Error processing message:', err);
         await this._bus.publishOutbound({
           channel: msg.channel,
           chatId: msg.chatId,
@@ -179,12 +177,11 @@ export class AgentLoop {
 
   stop(): void {
     this._running = false;
-    console.log('[Agent] Loop stopping');
   }
 
   /**
    * 直接处理消息（供 CLI 或程序化调用使用）
-   * 绕过消息总线，同步返回结果
+   * 绕过消息总线，同步返回结果，不通过消息总线发布响应
    */
   async processDirect(
     content: string,
@@ -227,13 +224,12 @@ export class AgentLoop {
     const preview = msg.content.length > 80
       ? msg.content.slice(0, 80) + '...'
       : msg.content;
-    console.log(`[Agent] Message from ${msg.channel}:${msg.senderId}: ${preview}`);
 
     // 获取或创建会话（支持通过 sessionKeyOverride 自定义会话键）
     const sessionKey = msg.sessionKeyOverride ?? `${msg.channel}:${msg.chatId}`;
     const session = this._sessions.getOrCreate(sessionKey);
 
-    // 斜杠命令处理
+    // 斜杠命令处理 /new 新建会话 /help 帮助
     const cmd = msg.content.trim().toLowerCase();
     if (cmd === '/new') {
       return this._handleNewSession(msg, session);
@@ -247,7 +243,7 @@ export class AgentLoop {
     }
 
     // 按需触发后台记忆整理（非阻塞）
-    // 当未整理的消息数达到记忆窗口大小时触发
+    // 当未整理的消息数达到记忆窗口大小时触发 触发后台记忆整理
     const unconsolidated = session.messages.length - session.lastConsolidated;
     if (unconsolidated >= this._memoryWindow && !this._consolidating.has(session.key)) {
       this._consolidating.add(session.key);
@@ -283,19 +279,13 @@ export class AgentLoop {
 
     // 显示"思考中"提示，让用户知道正在等待 LLM 响应
     await progressFn('Thinking...', false);
-
-    debugLog('entering _runAgentLoop (LLM calls happen here)');
     const { finalContent, allMessages } = await this._runAgentLoop(initialMessages, progressFn);
-    debugLog('_runAgentLoop returned');
 
     // 保存本轮对话到会话
     saveTurn(session, allMessages, 1 + history.length);
     this._sessions.save(session);
 
-    const reply = finalContent ?? "I've completed processing but have no response to give.";
-    const replyPreview = reply.length > 120 ? reply.slice(0, 120) + '...' : reply;
-    console.log(`[Agent] Response: ${replyPreview}`);
-
+    const reply = finalContent ?? "处理完成，但无响应可提供。";
     // 如果本轮已通过 message 工具发送了消息，则不重复发送响应
     if (this._messageTool.sentInTurn) return null;
 
@@ -383,7 +373,6 @@ export class AgentLoop {
         this._tools.getDefinitions(),
         this._model,
       );
-      debugLog(`provider.chat() returned, toolCalls=${response.toolCalls.length}`);
 
       if (response.toolCalls.length > 0) {
         // Send progress if any content

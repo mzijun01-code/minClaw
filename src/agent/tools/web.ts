@@ -1,5 +1,5 @@
 /**
- * Web tools: web_search (Brave API) and web_fetch (HTML → text/markdown)
+ * 网络工具：web_search（Brave/Tavily 搜索）、web_fetch（抓取 URL，HTML 转文本/ Markdown）。
  */
 
 import axios from 'axios';
@@ -9,6 +9,7 @@ import type { JSONSchema } from '../../types/index.js';
 
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7) AppleWebKit/537.36';
 
+/** 校验 URL 为 http(s) 且含 hostname。 */
 function validateUrl(url: string): { ok: boolean; error?: string } {
   try {
     const parsed = new URL(url);
@@ -24,41 +25,44 @@ function validateUrl(url: string): { ok: boolean; error?: string } {
   }
 }
 
+/** 去掉 script/style 后取纯文本并压缩空白。 */
 function stripTags(html: string): string {
   const $ = cheerio.load(html);
   $('script, style').remove();
   return $.text().replace(/\s+/g, ' ').trim();
 }
 
+/** 规范化空白：多空格/多换行压缩。 */
 function normalizeWhitespace(text: string): string {
   return text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+/** 将 HTML 转为简易 Markdown（标题、链接、列表、块级换行）。 */
 function htmlToMarkdown(html: string): string {
   const $ = cheerio.load(html);
 
   $('script, style').remove();
 
-  // Headings
+  /* 标题 → # 级 Markdown */
   $('h1,h2,h3,h4,h5,h6').each((_i, el) => {
     const level = parseInt(el.tagName.slice(1));
     const text = $(el).text().trim();
     $(el).replaceWith(`${'#'.repeat(level)} ${text}\n`);
   });
 
-  // Links
+  /* 链接 → [text](url) */
   $('a').each((_i, el) => {
     const href = $(el).attr('href') ?? '';
     const text = $(el).text().trim();
     $(el).replaceWith(text ? `[${text}](${href})` : href);
   });
 
-  // Lists
+  /* 列表项 → - 行首 */
   $('li').each((_i, el) => {
     $(el).replaceWith(`\n- ${$(el).text().trim()}`);
   });
 
-  // Block elements → newlines
+  /* 块级元素后插入换行 */
   $('p,div,section,article,br,hr').each((_i, el) => {
     $(el).after('\n\n');
   });
@@ -66,8 +70,7 @@ function htmlToMarkdown(html: string): string {
   return normalizeWhitespace($.text());
 }
 
-// ─── WebSearchTool ────────────────────────────────────────────────────────────
-
+/** 网页搜索：优先 Tavily（tvly- 前缀 key），否则用 Brave API。 */
 export class WebSearchTool extends Tool {
   readonly name = 'web_search';
   readonly description = 'Search the web. Returns titles, URLs, and snippets.';
@@ -92,10 +95,12 @@ export class WebSearchTool extends Tool {
     super();
   }
 
+  /** 取配置的 API Key：构造传入 > TAVILY_API_KEY > BRAVE_API_KEY。 */
   private get apiKey(): string {
     return this._apiKey ?? process.env['TAVILY_API_KEY'] ?? process.env['BRAVE_API_KEY'] ?? '';
   }
 
+  /** tvly- 前缀视为 Tavily，否则用 Brave。 */
   private get isTavily(): boolean {
     const key = this.apiKey;
     return key.startsWith('tvly-');
@@ -167,8 +172,7 @@ export class WebSearchTool extends Tool {
   }
 }
 
-// ─── WebFetchTool ─────────────────────────────────────────────────────────────
-
+/** 抓取 URL：HTML 转 markdown/text，JSON 直接美化；可限制 maxChars。 */
 export class WebFetchTool extends Tool {
   readonly name = 'web_fetch';
   readonly description = 'Fetch a URL and extract readable content (HTML → markdown/text).';

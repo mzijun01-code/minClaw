@@ -1,5 +1,5 @@
 /**
- * Spawn tool — starts a background subagent to handle a task.
+ * 子 Agent 工具：在后台启动子 Agent 处理指定任务，完成后回报；用于耗时或独立子任务。
  */
 
 import { Tool } from './base.js';
@@ -31,6 +31,7 @@ export class SpawnTool extends Tool {
     super();
   }
 
+  /** 设置调用来源 channel/chatId，子任务完成后消息回发到此会话。 */
   setContext(channel: string, chatId: string): void {
     this._originChannel = channel;
     this._originChatId = chatId;

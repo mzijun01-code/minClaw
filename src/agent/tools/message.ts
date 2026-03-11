@@ -1,5 +1,6 @@
 /**
- * Message tool — sends messages back to the user via the message bus.
+ * 消息工具：通过消息总线向用户发送消息。
+ * 支持指定 channel/chat_id、附件（media），未指定时使用 setContext 的会话上下文。
  */
 
 import { Tool } from './base.js';
@@ -26,6 +27,7 @@ export class MessageTool extends Tool {
   private _channel = '';
   private _chatId = '';
   private _messageId?: string;
+  /** 本回合是否已通过此工具发过消息（可用于限流或提示）。 */
   private _sentInTurn = false;
   private _sendCallback?: (msg: OutboundMessage) => Promise<void>;
 
@@ -34,6 +36,7 @@ export class MessageTool extends Tool {
     this._sendCallback = sendCallback;
   }
 
+  /** 设置默认发送目标（channel/chatId）及关联的 messageId。 */
   setContext(channel: string, chatId: string, messageId?: string): void {
     this._channel = channel;
     this._chatId = chatId;
@@ -44,6 +47,7 @@ export class MessageTool extends Tool {
     this._sendCallback = cb;
   }
 
+  /** 新回合开始时调用，重置 _sentInTurn。 */
   startTurn(): void {
     this._sentInTurn = false;
   }

@@ -33,7 +33,7 @@ export class CliChannel extends BaseChannel {
     });
     this._rl = rl;
 
-    console.log(chalk.bold.green('\n🤖 minbot — type your message, /help for commands, Ctrl+C to quit\n'));
+    console.log(chalk.bold.green('\n🤖 minibot — type your message, /help for commands, Ctrl+C to quit\n'));
 
     const PROMPT = chalk.cyan('You: ');
     rl.setPrompt(PROMPT);
