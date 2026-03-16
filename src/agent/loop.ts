@@ -28,10 +28,34 @@ import { MessageTool } from './tools/message.js';
 import { SpawnTool } from './tools/spawn.js';
 import { CronTool } from './tools/cron.js';
 
-const DEBUG = Boolean(process.env.MINBOT_DEBUG || process.env.DEBUG);
+const DEBUG = Boolean(process.env.MINBOT_DEBUG);
+const LOG_MESSAGES = Boolean(process.env.MINBOT_LOG_MESSAGES);
 
 function debugLog(...args: unknown[]): void {
   if (DEBUG) console.log('[DEBUG:loop]', ...args);
+}
+
+function logMessages(label: string, messages: SessionMessage[]): void {
+  if (!LOG_MESSAGES) return;
+  const tag = `\n${'═'.repeat(60)}\n[MSG:${label}] ${new Date().toISOString()}\n${'═'.repeat(60)}`;
+  console.log(tag);
+  for (const m of messages) {
+    const role = m.role.toUpperCase().padEnd(9);
+    if (m.role === 'system') {
+      console.log(`  ${role} (${m.content?.length ?? 0} chars)`);
+    } else if (m.role === 'tool') {
+      const result = m.content && m.content.length > 200 ? m.content.slice(0, 200) + '…' : m.content;
+      console.log(`  ${role} [${m.name}] ${result}`);
+    } else if (m.role === 'assistant' && m.toolCalls?.length) {
+      const calls = m.toolCalls.map((tc) => tc.function.name).join(', ');
+      const text = m.content ? ` "${m.content.slice(0, 80)}"` : '';
+      console.log(`  ${role}${text} → tools: [${calls}]`);
+    } else {
+      const text = m.content && m.content.length > 300 ? m.content.slice(0, 300) + '…' : m.content;
+      console.log(`  ${role} ${text}`);
+    }
+  }
+  console.log('─'.repeat(60));
 }
 
 export interface AgentLoopOptions {
@@ -368,11 +392,18 @@ export class AgentLoop {
 
     for (let i = 0; i < this._maxIterations; i++) {
       debugLog(`provider.chat() call start (iteration ${i + 1}/${this._maxIterations})`);
+      logMessages(`iter-${i + 1} request`, messages);
+
       const response = await this._provider.chat(
         messages,
         this._tools.getDefinitions(),
         this._model,
       );
+
+      if (LOG_MESSAGES) {
+        const calls = response.toolCalls.map((tc) => tc.name);
+        console.log(`[MSG:iter-${i + 1} response] content=${response.content?.length ?? 0} chars, tools=[${calls.join(', ')}]`);
+      }
 
       if (response.toolCalls.length > 0) {
         // Send progress if any content

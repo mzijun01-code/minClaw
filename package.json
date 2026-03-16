@@ -8,7 +8,7 @@
     "start": "node --env-file=.env dist/index.js",
     "dev": "node --env-file=.env --import tsx/esm src/index.ts",
     "dev:debug": "MINBOT_DEBUG=1 node --env-file=.env --import tsx/esm src/index.ts",
-    "build": "tsc",
+    "build": "tsc && cp -r src/skills dist/skills",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

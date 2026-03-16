@@ -12,9 +12,22 @@ import { HumanMessage, SystemMessage, AIMessage, ToolMessage } from '@langchain/
 import type { BaseMessage } from '@langchain/core/messages';
 import type { LLMResponse, OpenAIToolSchema, ToolCallRequest } from '../types/index.js';
 
-const DEBUG = Boolean(process.env.MINBOT_DEBUG || process.env.DEBUG);
+const DEBUG = Boolean(process.env.MINBOT_DEBUG);
 function debugLog(...args: unknown[]): void {
   if (DEBUG) console.log('[DEBUG:llm]', ...args);
+}
+
+function debugMessages(messages: InputMessage[]): void {
+  if (!DEBUG) return;
+  console.log('[DEBUG:llm] ── messages ──');
+  for (const m of messages) {
+    const preview = (m.content ?? '').slice(0, 120).replace(/\n/g, '\\n');
+    const suffix = (m.content ?? '').length > 120 ? '…' : '';
+    const tools = m.toolCalls?.length ? ` [${m.toolCalls.length} tool_calls]` : '';
+    const toolId = m.toolCallId ? ` (call_id:${m.toolCallId.slice(0, 8)})` : '';
+    console.log(`  ${m.role.padEnd(10)}${tools}${toolId}: ${preview}${suffix}`);
+  }
+  console.log('[DEBUG:llm] ─────────────');
 }
 
 type InputMessage = {
@@ -89,7 +102,8 @@ export class LangChainProvider {
       // Bind tools if provided
       const boundLlm = tools?.length ? llm.bind({ tools }) : llm;
 
-      debugLog('invoke() start (waiting for API response)...');
+      debugMessages(messages);
+      debugLog('invoke() start...');
       const response = await boundLlm.invoke(lcMessages);
       debugLog('invoke() done');
       return this._parseResponse(response as AIMessage);

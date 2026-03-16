@@ -4,6 +4,31 @@
 
 ---
 
+## 快速开始：飞书最小接入
+
+- **1. 复制环境变量模板**
+  - 在项目根目录执行：`cp .env.example .env`
+  - 编辑 `.env`，至少配置：
+    - `FEISHU_APP_ID`：你的飞书应用 App ID
+    - `FEISHU_APP_SECRET`：你的飞书应用 App Secret
+    - `FEISHU_ALLOW_FROM="*"`：调试期允许所有发送方
+
+- **2. 在飞书开放平台创建应用**
+  - 创建企业自建应用 / 机器人，开启「机器人」能力和 IM 收发权限。
+  - 将应用安装到你的企业，并把机器人拉进你要对话的单聊或群聊。
+
+- **3. 本地启动 minbot（dev 模式）**
+  - 在项目根目录运行：`npm run dev`
+  - 控制台看到类似日志即表示飞书通道已启用：
+    - `[channels] Feishu channel enabled`
+    - `[channels] Starting feishu...`
+
+- **4. 在飞书里和机器人对话**
+  - 直接给机器人发消息，例如：「帮我解释一下这个报错」。
+  - minbot 会通过 Feishu 长连接收到消息、调用 Agent 完成任务，并把结果以卡片形式回复到同一会话。
+
+---
+
 ## 一、项目概述
 
 **minbot** 是 openClaw 的 Node + langChain 版本，保留原版核心能力，并通过 TypeScript + LangChain 获得更好的类型安全与生态整合，利用前端同学，打造成一个可扩展的个人AI助手。

@@ -171,16 +171,21 @@ export class ChannelManager {
   private async _dispatchOutbound(): Promise<void> {
     console.log('[channels] Outbound dispatcher started');
 
+    let pending: Promise<OutboundMessage> | null = null;
+
     while (this._running) {
       let msg: OutboundMessage | null = null;
 
       try {
-        // Await with a 1-second timeout so we can check _running periodically
+        if (!pending) {
+          pending = this.bus.consumeOutbound();
+        }
         msg = await Promise.race([
-          this.bus.consumeOutbound(),
+          pending.then((m) => { pending = null; return m; }),
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000)),
         ]);
       } catch {
+        pending = null;
         continue;
       }
 

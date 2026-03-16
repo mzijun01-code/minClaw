@@ -22,6 +22,9 @@ import os from 'node:os';
 import fs from 'node:fs';
 import 'dotenv/config';
 
+// 防止 DEBUG 环境变量触发 OpenAI SDK 的全量日志，应用级调试请用 MINBOT_DEBUG
+delete process.env['DEBUG'];
+
 import { MessageBus } from './bus/queue.js';
 import { LangChainProvider } from './providers/langchain.js';
 import { AgentLoop } from './agent/loop.js';
@@ -55,10 +58,11 @@ async function main(): Promise<void> {
   const braveApiKey = process.env['BRAVE_API_KEY'];
 
   // ─── Builtin skills directory ───────────────────────────────────────────────
-  // Resolves to minbot/skills/ regardless of whether running from src/ or dist/
+  // dev  → src/index.ts  → src/skills/
+  // prod → dist/index.js → dist/skills/ (copied by build script)
   const builtinSkillsDir = path.resolve(
     fileURLToPath(new URL('.', import.meta.url)),
-    '../skills',
+    'skills',
   );
 
   // ─── Workspace ──────────────────────────────────────────────────────────────
