@@ -174,10 +174,10 @@ export class AgentLoop {
       const msg = await this._bus.consumeInbound();
       if (!this._running) break;
 
-      debugLog('收到入站消息，开始处理...');
+      debugLog('收到入站用户任务，开始处理...');
       try {
         const response = await this._processMessage(msg);
-        debugLog('处理完成，发布响应...');
+        debugLog('处理完成，响应用户...');
         if (response) {
           await this._bus.publishOutbound(response);
         } else if (msg.channel === 'cli') {
@@ -394,6 +394,8 @@ export class AgentLoop {
       debugLog(`provider.chat() call start (iteration ${i + 1}/${this._maxIterations})`);
       logMessages(`iter-${i + 1} request`, messages);
 
+      this._printConversation(i + 1, messages);
+
       const response = await this._provider.chat(
         messages,
         this._tools.getDefinitions(),
@@ -440,6 +442,14 @@ export class AgentLoop {
     }
 
     return { finalContent, allMessages: messages };
+  }
+
+  /**
+   * 在每次调用远程模型前，打印完整的对话历史（原始结构）
+   */
+  private _printConversation(iteration: number, messages: SessionMessage[]): void {
+    console.dir(`\n[对话历史] iteration=${iteration}/${this._maxIterations} model=${this._model} messages=${messages.length} time=${new Date().toISOString()}`, { depth: null });
+    console.log(JSON.stringify(messages, null, 2));
   }
 
   /**
